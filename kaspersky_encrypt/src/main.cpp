@@ -3,8 +3,12 @@
 #include <sstream>
 #include <string>
 
+//------------------------------------------------------------------------------
+
 const int globalFileLen = 0x1048;
 char globalConstData[globalFileLen];
+
+//------------------------------------------------------------------------------
 
 void genKey(int, int);
 void genKeyStage2(int *, int *, int *, int *);
@@ -12,6 +16,7 @@ void genKeyStage3(int *, int);
 void getConstData(void);
 int getFromConstData(int);
 
+//------------------------------------------------------------------------------
 
 int main()
 {
@@ -25,6 +30,8 @@ int main()
     return 0;
 }
 
+//------------------------------------------------------------------------------
+
 void genKeyStage3(int * _esi, int _edi)
 {
     /*
@@ -34,7 +41,8 @@ void genKeyStage3(int * _esi, int _edi)
     int t_esi = *_esi;
     int t_dword = getFromConstData(_edi*4+0xc48);
 
-    __asm {
+    __asm
+    {
         mov esi, t_esi;
         add esi, t_dword;
 
@@ -44,6 +52,7 @@ void genKeyStage3(int * _esi, int _edi)
     *_esi = t_esi;
 }
 
+//------------------------------------------------------------------------------
 
 void genKeyStage2(int * _register, int * _esi, int * _edi, int * _edx)
 {
@@ -63,7 +72,7 @@ void genKeyStage2(int * _register, int * _esi, int * _edi, int * _edx)
      * xor esi,dword ptr ds:[ecx+edi*4+848]
      * movzx edi,al
      *
-     * ########################################################################
+     * =========================================================================
      *
      * xor ebx,esi
      * mov esi,ebx
@@ -87,15 +96,14 @@ void genKeyStage2(int * _register, int * _esi, int * _edi, int * _edx)
     int t_register = *_register;
     int t_dword;
 
-    // ################# first half #################
+    // ======================== first half ========================
 
     t_register ^= t_esi;
     t_esi = t_register;
     t_edi = t_register;
 
-
-
-    __asm {
+    __asm
+    {
         mov esi, t_esi          ;
         mov edi, t_edi          ;
         shr esi, 0x10           ;
@@ -108,13 +116,13 @@ void genKeyStage2(int * _register, int * _esi, int * _edi, int * _edx)
         mov t_esi, esi          ;
     }
 
-
-    //################# second half #################
+    // ======================== second half ========================
 
     t_esi = getFromConstData(t_esi*4+0x448);
     t_dword = getFromConstData(t_edi*4+0x48);
 
-    __asm {
+    __asm
+    {
         mov esi, t_esi          ;
         add esi, t_dword        ;
 
@@ -127,10 +135,13 @@ void genKeyStage2(int * _register, int * _esi, int * _edi, int * _edx)
         mov t_esi, esi          ;
     }
 
+    //--------------------------------------------------------------------------
+
     t_dword = getFromConstData(t_edi*4+0x848);
     t_esi = t_esi ^ t_dword;
 
-    __asm {
+    __asm
+    {
         push eax                ;
         mov eax, t_register     ;
         movzx edi, al           ;
@@ -139,12 +150,15 @@ void genKeyStage2(int * _register, int * _esi, int * _edi, int * _edx)
         mov t_edi, edi          ;
     }
 
+    //--------------------------------------------------------------------------
+
     *_esi = t_esi;
     *_edi = t_edi;
     *_edx = t_edx;
     *_register = t_register;
 }
 
+//------------------------------------------------------------------------------
 
 void getConstData()
 {
@@ -153,16 +167,21 @@ void getConstData()
 
     // fill array with const data
     std::ifstream file (path, std::ios::binary | std::ios::ate);
-    if (file.is_open()) {
+    if (file.is_open())
+    {
         size = file.tellg();
         file.seekg(0, std::ios::beg);
         file.read(globalConstData, size);
         file.close();
-    } else {
+    }
+    else
+    {
         std::cout << "Can't open file with data\n";
         exit (0);
     }
 }
+
+//------------------------------------------------------------------------------
 
 int getFromConstData(int offset)
 {
@@ -170,7 +189,8 @@ int getFromConstData(int offset)
      * This function allow to get dword from const data
      */
 
-    struct {
+    struct
+    {
         unsigned char b0;
         unsigned char b1;
         unsigned char b2;
@@ -195,9 +215,12 @@ int getFromConstData(int offset)
     return _dword;
 }
 
+//------------------------------------------------------------------------------
+
 void genKey(int dataDword1, int dataDword2)
 {
-    struct {
+    struct
+    {
         unsigned char b0;
         unsigned char b1;
         unsigned char b2;
@@ -211,30 +234,39 @@ void genKey(int dataDword1, int dataDword2)
     int _eax, _ebx, _ecx, _edx, _esi, _edi;
     int dwordFromConstData = 0;
 
-    // ################# stage 1 #################
+    // ======================== stage 1 ========================
 
     _ebx = dataDword1;
     _edi = dataDword2;
 
-    __asm {
+    __asm
+    {
         mov ebx, _ebx       ;
         bswap ebx           ;
         mov _ebx, ebx       ;
     }
 
+    //--------------------------------------------------------------------------
+
     dwordFromConstData = getFromConstData(0);
     _ebx ^= dwordFromConstData;
 
-    __asm {
+    //--------------------------------------------------------------------------
+
+    __asm
+    {
         mov edi, _edi       ;
         bswap edi           ;
         mov _edi, edi       ;
     }
 
+    //--------------------------------------------------------------------------
+
     _esi = _ebx;
     _eax = _ebx;
 
-    __asm {
+    __asm
+    {
         mov esi, _esi       ;
         mov eax, _eax       ;
         shr esi, 0x10       ;
@@ -243,19 +275,25 @@ void genKey(int dataDword1, int dataDword2)
         mov _eax, eax       ;
     }
 
+    //--------------------------------------------------------------------------
+
     _edx = _esi;
 
-    __asm {
+    __asm
+    {
         mov esi, _esi       ;
         mov edx, _edx       ;
         movzx esi, dl       ;
         mov _esi, esi       ;
     }
 
+    //--------------------------------------------------------------------------
+
     _esi = getFromConstData(_esi*4+0x448);
     dwordFromConstData = getFromConstData(_eax*4+0x48);
 
-    __asm {
+    __asm
+    {
         mov esi, _esi               ;
         add esi, dwordFromConstData ;
         mov _esi, esi               ;
@@ -266,68 +304,93 @@ void genKey(int dataDword1, int dataDword2)
         mov _eax, eax               ;
     }
 
+    //--------------------------------------------------------------------------
+
     _esi = _esi ^ (getFromConstData(_eax*4+0x848));
 
-    __asm {
+    //--------------------------------------------------------------------------
+
+    __asm
+    {
         mov eax, _eax       ;
         mov ebx, _ebx       ;
         movzx eax, bl       ;
         mov _eax, eax       ;
     }
 
+    //--------------------------------------------------------------------------
+
     _ebx = _ebx ^ (getFromConstData(0x8));
     dwordFromConstData = getFromConstData(_eax*4+0xc48);
 
-    __asm {
+    __asm
+    {
         mov esi, _esi               ;
         add esi, dwordFromConstData ;
 
         mov _esi, esi               ;
     }
 
+    //--------------------------------------------------------------------------
+
     _eax = getFromConstData(4);
     _eax ^= _edi;
 
-    // ################# stage 2 #################
+    // ======================== stage 2 ========================
 
     genKeyStage2(&_eax, &_esi, &_edi, &_edx);
     _eax ^= getFromConstData(0xc);
     genKeyStage3(&_esi, _edi);
 
+    //--------------------------------------------------------------------------
+
     genKeyStage2(&_ebx, &_esi, &_edi, &_edx);
     _ebx ^= getFromConstData(0x10);
     genKeyStage3(&_esi, _edi);
 
+    //--------------------------------------------------------------------------
+
     genKeyStage2(&_eax, &_esi, &_edi, &_edx);
     genKeyStage3(&_esi, _edi);
+
+    //--------------------------------------------------------------------------
 
     genKeyStage2(&_ebx, &_esi, &_edi, &_edx);
     _eax ^= getFromConstData(0x14);
     genKeyStage3(&_esi, _edi);
     _ebx ^= getFromConstData(0x18);
 
+    //--------------------------------------------------------------------------
+
     genKeyStage2(&_eax, &_esi, &_edi, &_edx);
     _eax ^= getFromConstData(0x1c);
     genKeyStage3(&_esi, _edi);
+
+    //--------------------------------------------------------------------------
 
     genKeyStage2(&_ebx, &_esi, &_edi, &_edx);
     _ebx ^= getFromConstData(0x20);
     genKeyStage3(&_esi, _edi);
 
+    //--------------------------------------------------------------------------
+
     genKeyStage2(&_eax, &_esi, &_edi, &_edx);
     _eax ^= getFromConstData(0x24);
     genKeyStage3(&_esi, _edi);
 
+    //--------------------------------------------------------------------------
+
     genKeyStage2(&_ebx, &_esi, &_edi, &_edx);
     genKeyStage3(&_esi, _edi);
 
-    // ################# different behavior START  #################
+    // ====================== different behavior START  ======================
 
     _eax ^= _esi;
     _edi = _eax;
     _esi = _eax;
 
-    __asm {
+    __asm
+    {
         mov esi, _esi           ;
         mov edi, _edi           ;
 
@@ -338,10 +401,13 @@ void genKey(int dataDword1, int dataDword2)
         mov _edi, edi           ;
     }
 
+    //--------------------------------------------------------------------------
+
     _ebx ^= getFromConstData(0x28);
     _edx = _esi;
 
-    __asm {
+    __asm
+    {
         mov esi, _esi;
         mov edx, _edx;
 
@@ -350,10 +416,13 @@ void genKey(int dataDword1, int dataDword2)
         mov _esi, esi;
     }
 
+    //--------------------------------------------------------------------------
+
     _esi = getFromConstData(_esi*4+0x448);
     dwordFromConstData = getFromConstData(_edi*4+0x48);
 
-    __asm {
+    __asm
+    {
         mov esi, _esi                       ;
         add esi, dwordFromConstData         ;
 
@@ -364,47 +433,63 @@ void genKey(int dataDword1, int dataDword2)
         mov _esi, esi                       ;
     }
 
+    //--------------------------------------------------------------------------
+
     _esi ^= getFromConstData(_edi*4+0x848);
 
-    __asm {
+    //--------------------------------------------------------------------------
+
+    __asm
+    {
         mov eax, _eax           ;
         movzx edi, al           ;
 
         mov _edi, edi           ;
     }
 
+    //--------------------------------------------------------------------------
+
     genKeyStage3(&_esi, _edi);
 
-    // ################# different behavior STOP   #################
+    // ====================== different behavior STOP   ======================
 
     genKeyStage2(&_ebx, &_esi, &_edi, &_edx);
     genKeyStage3(&_esi, _edi);
     _eax ^= getFromConstData(0x2c);
     _ebx ^= getFromConstData(0x30);
 
+    //--------------------------------------------------------------------------
+
     genKeyStage2(&_eax, &_esi, &_edi, &_edx);
     _eax ^= getFromConstData(0x34);
     genKeyStage3(&_esi, _edi);
 
+    //--------------------------------------------------------------------------
+
     genKeyStage2(&_ebx, &_esi, &_edi, &_edx);
     genKeyStage3(&_esi, _edi);
+
+    //--------------------------------------------------------------------------
 
     genKeyStage2(&_eax, &_esi, &_edi, &_edx);
     genKeyStage3(&_esi, _edi);
     _ebx ^= getFromConstData(0x38);
     _eax ^= getFromConstData(0x3c);
 
+    //--------------------------------------------------------------------------
+
     genKeyStage2(&_ebx, &_esi, &_edi, &_edx);
     _ebx ^= getFromConstData(0x40);
     genKeyStage3(&_esi, _edi);
 
-    // ################# different behavior START  #################
+    // ====================== different behavior START  ======================
 
     _eax ^= _esi;
     _esi = _eax;
     _edi = _eax;
 
-    __asm {
+    __asm
+    {
         mov esi, _esi           ;
         mov edi, _edi           ;
 
@@ -419,13 +504,16 @@ void genKey(int dataDword1, int dataDword2)
         mov _esi, esi           ;
     }
 
+    //--------------------------------------------------------------------------
+
     // need move to edx [empty mem]
     // mov edx, empty mem
 
     _esi = getFromConstData(_esi*4+0x448);
     dwordFromConstData = getFromConstData(_edi*4+0x48);
 
-    __asm {
+    __asm
+    {
         mov esi, _esi                       ;
         add esi, dwordFromConstData         ;
 
@@ -436,51 +524,67 @@ void genKey(int dataDword1, int dataDword2)
         mov _esi, esi                       ;
     }
 
+    //--------------------------------------------------------------------------
+
     _esi ^= getFromConstData(_edi*4+0x848);
 
-    __asm {
+    //--------------------------------------------------------------------------
+
+    __asm
+    {
         mov eax, _eax           ;
         movzx edi, al           ;
 
         mov _edi, edi           ;
     }
 
+    //--------------------------------------------------------------------------
+
     _eax ^= getFromConstData(0x44);
+
+    //--------------------------------------------------------------------------
 
     std::cout << std::hex << getFromConstData(0x44) << std::endl;
     genKeyStage3(&_esi, _edi);
 
-    // ################# different behavior STOP   #################
+    // ====================== different behavior STOP   ======================
 
 
-    // ################# Stage 3   #################
+    // ======================== Stage 3   ========================
 
      _ecx = _eax;
      _KEY_PART.b3 = _eax & 0xff;
 
-     __asm {
+     __asm
+     {
          mov ecx, _ecx              ;
          shr ecx, 0x18              ;
 
          mov _ecx, ecx              ;
      }
 
+     //-------------------------------------------------------------------------
+
      _ebx ^= _esi;
      _KEY_PART.b0 = _ecx & 0xff;
      _ecx = _eax;
 
-     __asm {
+     __asm
+     {
          mov ecx, _ecx              ;
          shr ecx, 0x10              ;
 
          mov _ecx, ecx              ;
      }
 
+     //-------------------------------------------------------------------------
+
      _KEY_PART.b1 = _ecx & 0xff;
      _ecx = _eax;
      _eax = _ebx;
 
-     __asm {
+     __asm
+     {
          mov eax, _eax              ;
          shr eax, 0x18              ;
 
@@ -491,27 +595,35 @@ void genKey(int dataDword1, int dataDword2)
          mov _ecx, ecx              ;
      }
 
+     //-------------------------------------------------------------------------
+
      _KEY_PART.b2 = _ecx & 0xff;
      _KEY_PART.b4 = _eax & 0xff;
      _eax = _ebx;
 
-     __asm {
+     __asm
+     {
          mov eax, _eax              ;
          shr eax, 0x10              ;
 
          mov _eax, eax              ;
      }
 
+     //-------------------------------------------------------------------------
+
      _KEY_PART.b7 = _ebx & 0xff;
      _KEY_PART.b5 = _eax & 0xff;
      _eax = _ebx;
 
-     __asm {
+     __asm
+     {
          mov eax, _eax              ;
          shr eax, 0x8               ;
 
          mov _eax, eax              ;
      }
+
+     //-------------------------------------------------------------------------
 
      _KEY_PART.b6 = _eax & 0xff;
 
@@ -524,25 +636,3 @@ void genKey(int dataDword1, int dataDword2)
      std::cout << std::hex << int(_KEY_PART.b6) << std::endl;
      std::cout << std::hex << int(_KEY_PART.b7) << std::endl;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

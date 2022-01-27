@@ -3,13 +3,18 @@
 #include <sstream>
 #include <string>
 
+//------------------------------------------------------------------------------
+
 const int globalFileLen = 0x1048;
 char globalConstData[globalFileLen];
 
 int globalEncFileLen;
 char *globalEncryptedData;
 
-typedef struct {
+//------------------------------------------------------------------------------
+
+typedef struct
+{
     unsigned char b0;
     unsigned char b1;
     unsigned char b2;
@@ -20,6 +25,8 @@ typedef struct {
     unsigned char b7;
 } _KEY_PART;
 
+//------------------------------------------------------------------------------
+
 void getConstData(void);
 void decrypt(_KEY_PART);
 void decryptStage2(int, int *, int);
@@ -27,6 +34,7 @@ void showRegister(int, int, int, int, int);
 void getEncryptedData();
 int getFromConstData(int);
 
+//------------------------------------------------------------------------------
 
 int main()
 {
@@ -34,7 +42,8 @@ int main()
     getEncryptedData();
     _KEY_PART key;
 
-    for (int i = 0; i < globalEncFileLen; i += 8){
+    for (int i = 0; i < globalEncFileLen; i += 8)
+    {
         key.b0 = globalEncryptedData[i];
         key.b1 = globalEncryptedData[i+1];
         key.b2 = globalEncryptedData[i+2];
@@ -51,6 +60,8 @@ int main()
     return 0;
 }
 
+//------------------------------------------------------------------------------
+
 void getEncryptedData()
 {
     std::streampos size;
@@ -58,18 +69,23 @@ void getEncryptedData()
 
     // fill array with const data
     std::ifstream file (path, std::ios::binary | std::ios::ate);
-    if (file.is_open()) {
+    if (file.is_open())
+    {
         size = file.tellg();
         file.seekg(0, std::ios::beg);
         globalEncryptedData = new char [size];
         globalEncFileLen = (int)size;
         file.read(globalEncryptedData, size);
         file.close();
-    } else {
+    }
+    else
+    {
         std::cout << "Can't open file with data\n";
         exit (0);
     }
 }
+
+//------------------------------------------------------------------------------
 
 void showRegister(int eax, int ebx, int edx, int esi, int edi)
 {
@@ -80,13 +96,16 @@ void showRegister(int eax, int ebx, int edx, int esi, int edi)
     std::cout << "EDI:  " << std::hex << edi << std::endl << std::endl;
 }
 
+//------------------------------------------------------------------------------
+
 int getFromConstData(int offset)
 {
     /*
      * This function allow to get dword from const data
      */
 
-    struct {
+    struct
+    {
         unsigned char b0;
         unsigned char b1;
         unsigned char b2;
@@ -111,6 +130,8 @@ int getFromConstData(int offset)
     return _dword;
 }
 
+//------------------------------------------------------------------------------
+
 void getConstData()
 {
     std::streampos size;
@@ -118,16 +139,21 @@ void getConstData()
 
     // fill array with const data
     std::ifstream file (path, std::ios::binary | std::ios::ate);
-    if (file.is_open()) {
+    if (file.is_open())
+    {
         size = file.tellg();
         file.seekg(0, std::ios::beg);
         file.read(globalConstData, size);
         file.close();
-    } else {
+    }
+    else
+    {
         std::cout << "Can't open file with data\n";
         exit (0);
     }
 }
+
+//------------------------------------------------------------------------------
 
 void decryptStage2(int _register, int *_esi, int _edi)
 {
@@ -139,7 +165,10 @@ void decryptStage2(int _register, int *_esi, int _edi)
     t_esi = t_register;
     t_edi = t_register;
 
-    __asm {
+    //--------------------------------------------------------------------------
+
+    __asm
+    {
         mov esi, t_esi          ;
         mov edi, t_edi          ;
         shr esi, 0x10           ;
@@ -151,12 +180,13 @@ void decryptStage2(int _register, int *_esi, int _edi)
         mov t_esi, esi          ;
     }
 
-    //################# second half #################
+    //======================== second half ========================
 
     t_esi = getFromConstData(t_esi*4+0x448);
     t_dword = getFromConstData(t_edi*4+0x48);
 
-    __asm {
+    __asm
+    {
         mov esi, t_esi          ;
         add esi, t_dword        ;
 
@@ -169,9 +199,12 @@ void decryptStage2(int _register, int *_esi, int _edi)
         mov t_esi, esi          ;
     }
 
+    //--------------------------------------------------------------------------
+
     t_esi ^= getFromConstData(t_edi*4+0x848);
 
-    __asm {
+    __asm
+    {
         push eax                ;
         mov eax, t_register     ;
         movzx edi, al           ;
@@ -180,9 +213,12 @@ void decryptStage2(int _register, int *_esi, int _edi)
         mov t_edi, edi          ;
     }
 
+    //--------------------------------------------------------------------------
+
     t_dword = getFromConstData(t_edi*4+0xc48);
 
-    __asm {
+    __asm
+    {
         mov esi, t_esi;
         add esi, t_dword;
 
@@ -192,11 +228,15 @@ void decryptStage2(int _register, int *_esi, int _edi)
     *_esi = t_esi;
 }
 
+//------------------------------------------------------------------------------
+
 void decrypt(_KEY_PART key)
 {
 
     int _eax, _ebx, _edx, _esi, _edi;
     int dwordFromConstData = 0;
+
+    //--------------------------------------------------------------------------
 
     _eax = 0;
     _eax |= key.b0;
@@ -207,6 +247,8 @@ void decrypt(_KEY_PART key)
     _eax <<= 8;
     _eax |= key.b3;
 
+    //--------------------------------------------------------------------------
+
     _ebx = 0;
     _ebx |= key.b4;
     _ebx <<= 8;
@@ -216,12 +258,15 @@ void decrypt(_KEY_PART key)
     _ebx <<= 8;
     _ebx |= key.b7;
 
+    //--------------------------------------------------------------------------
+
     _eax ^= getFromConstData(0x44);
 
     _esi = _eax;
     _edi = _eax;
 
-    __asm {
+    __asm
+    {
         mov esi, _esi           ;
         mov edi, _edi           ;
 
@@ -236,10 +281,13 @@ void decrypt(_KEY_PART key)
         mov _esi, esi           ;
     }
 
+    //--------------------------------------------------------------------------
+
     _esi = getFromConstData(_esi*4+0x448);
     dwordFromConstData = getFromConstData(_edi*4+0x48);
 
-    __asm {
+    __asm
+    {
         mov esi, _esi                       ;
         add esi, dwordFromConstData         ;
 
@@ -250,25 +298,36 @@ void decrypt(_KEY_PART key)
         mov _esi, esi                       ;
     }
 
-    __asm {
+    //--------------------------------------------------------------------------
+
+    __asm
+    {
         mov eax, _eax           ;
         movzx edi, ah           ;
 
         mov _edi, edi           ;
     }
 
+    //--------------------------------------------------------------------------
+
     _esi ^= getFromConstData(_edi*4+0x848);
 
-    __asm {
+    //--------------------------------------------------------------------------
+
+    __asm
+    {
         mov eax, _eax           ;
         movzx edi, al           ;
 
         mov _edi, edi           ;
     }
 
+    //--------------------------------------------------------------------------
+
     dwordFromConstData = getFromConstData(_edi*4+0xC48);
 
-    __asm {
+    __asm
+    {
         mov esi, _esi                       ;
         add esi, dwordFromConstData         ;
 
@@ -277,16 +336,20 @@ void decrypt(_KEY_PART key)
 
     _ebx ^= _esi;       // now i know EAX and EBX
 
-    // ################# stage 2 #################
+    // ======================== stage 2 ========================
 
     _ebx ^= getFromConstData(0x40);
     decryptStage2(_ebx, &_esi, _edi);
     _eax ^= _esi;
 
+    //--------------------------------------------------------------------------
+
     _eax ^= getFromConstData(0x3c);
     decryptStage2(_eax, &_esi, _edi);
     _ebx ^= _esi;
     _ebx ^= getFromConstData(0x38);
+
+    //--------------------------------------------------------------------------
 
     decryptStage2(_ebx, &_esi, _edi);
     _eax ^= _esi;
@@ -298,13 +361,13 @@ void decrypt(_KEY_PART key)
     _eax ^= _esi;
     _eax ^= getFromConstData(0x2c);
 
-
-    // ################# different behavior START  #################
+    // ===================== different behavior START  =====================
 
     _edi = _eax;
     _esi = _eax;
 
-    __asm {
+    __asm
+    {
         mov esi, _esi           ;
         mov edi, _edi           ;
 
@@ -315,10 +378,16 @@ void decrypt(_KEY_PART key)
         mov _edi, edi           ;
     }
 
+    //--------------------------------------------------------------------------
+
     _ebx ^= getFromConstData(0x28);
+
+    //--------------------------------------------------------------------------
+
     _edx = _esi;
 
-    __asm {
+    __asm
+    {
         mov esi, _esi;
         mov edx, _edx;
 
@@ -327,10 +396,13 @@ void decrypt(_KEY_PART key)
         mov _esi, esi;
     }
 
+    //--------------------------------------------------------------------------
+
     _esi = getFromConstData(_esi*4+0x448);
     dwordFromConstData = getFromConstData(_edi*4+0x48);
 
-    __asm {
+    __asm
+    {
         mov esi, _esi                       ;
         add esi, dwordFromConstData         ;
 
@@ -341,52 +413,83 @@ void decrypt(_KEY_PART key)
         mov _esi, esi                       ;
     }
 
+    //--------------------------------------------------------------------------
+
     _esi ^= getFromConstData(_edi*4+0x848);
 
-    __asm {
+    //--------------------------------------------------------------------------
+
+    __asm
+    {
         mov eax, _eax           ;
         movzx edi, al           ;
 
         mov _edi, edi           ;
     }
 
+    //--------------------------------------------------------------------------
+
     dwordFromConstData = getFromConstData(_edi*4+0xc48);
 
-    __asm {
+    __asm
+    {
         mov esi, _esi;
         add esi, dwordFromConstData;
 
         mov _esi, esi;
     }
 
-    // ################# different behavior STOP  #################
+    // ====================== different behavior STOP  ======================
 
     _ebx ^= _esi;
     decryptStage2(_ebx, &_esi, _edi);
+
+    //--------------------------------------------------------------------------
     _eax ^= _esi;
     _eax ^= getFromConstData(0x24);
     decryptStage2(_eax, &_esi, _edi);
+
+    //--------------------------------------------------------------------------
+
     _ebx ^= _esi;
     _ebx ^= getFromConstData(0x20);
     decryptStage2(_ebx, &_esi, _edi);
+
+    //--------------------------------------------------------------------------
+
     _eax ^= _esi;
     _eax ^= getFromConstData(0x1c);
     decryptStage2(_eax, &_esi, _edi);
+
+    //--------------------------------------------------------------------------
+
     _ebx ^= _esi;
     _ebx ^= getFromConstData(0x18);
     decryptStage2(_ebx, &_esi, _edi);
+
+    //--------------------------------------------------------------------------
+
     _eax ^= _esi;
     _eax ^= getFromConstData(0x14);
     decryptStage2(_eax, &_esi, _edi);
+
+    //--------------------------------------------------------------------------
+
     _ebx ^= _esi;
     _ebx ^= getFromConstData(0x10);
     decryptStage2(_ebx, &_esi, _edi);
+
+    //--------------------------------------------------------------------------
+
     _eax ^= _esi;
     _eax ^= getFromConstData(0xc);
     decryptStage2(_eax, &_esi, _edi);
+
+    //--------------------------------------------------------------------------
+
     _ebx ^= _esi;
 
-    // ################# stage 3 #################
+    // ======================== stage 3 ========================
 
     int t_register_eax;
 
@@ -394,7 +497,8 @@ void decrypt(_KEY_PART key)
     _esi = _ebx;
     t_register_eax = _ebx;
 
-    __asm {
+    __asm
+    {
         mov esi, _esi               ;
         shr esi, 0x10               ;
 
@@ -411,10 +515,13 @@ void decrypt(_KEY_PART key)
         mov t_register_eax, eax     ;
     }
 
+    //--------------------------------------------------------------------------
+
     _esi = getFromConstData(_esi*4+0x448);
     dwordFromConstData = getFromConstData(t_register_eax*4+0x48);
 
-    __asm {
+    __asm
+    {
         mov esi, _esi                       ;
         add esi, dwordFromConstData         ;
 
@@ -427,9 +534,14 @@ void decrypt(_KEY_PART key)
         mov _esi, esi                       ;
     }
 
+    //--------------------------------------------------------------------------
+
     _esi ^= getFromConstData(t_register_eax*4+0x848);
 
-    __asm {
+    //--------------------------------------------------------------------------
+
+    __asm
+    {
         mov ebx, _ebx                       ;
 
         push edx                            ;
@@ -438,34 +550,43 @@ void decrypt(_KEY_PART key)
         pop edx;
     }
 
+    //--------------------------------------------------------------------------
+
     dwordFromConstData = getFromConstData(t_register_eax*4+0xC48);
 
-    __asm {
+    __asm
+    {
         mov esi, _esi;
         add esi, dwordFromConstData;
 
         mov _esi, esi;
     }
 
-    _eax ^= _esi;
+    //--------------------------------------------------------------------------
+
+    _eax ^= _esi;    
     _edi = getFromConstData(0x4);
     _edi ^= _eax;
 
-    __asm {
+    __asm
+    {
         mov edi, _edi           ;
         bswap edi               ;
         mov _edi, edi           ;
     }
 
+    //--------------------------------------------------------------------------
+
     _ebx ^= getFromConstData(0x0);
 
-    __asm {
+    __asm
+    {
         mov ebx, _ebx           ;
         bswap ebx               ;
         mov _ebx, ebx           ;
     }
 
-    // ################# FINAL #################
+    // ======================== FINAL ========================
 
     // It works only when I open file current here. Wtf? optimization is in trash
     std::string path = "decrypted_text.dat";
@@ -473,14 +594,18 @@ void decrypt(_KEY_PART key)
     dec_file.open (path, std::ios::binary | std::ios::app);
     unsigned char byte;
 
-    for (int i = 0; i < 8; i++) {
-        if (i > 3) {
+    for (int i = 0; i < 8; i++)
+    {
+        if (i > 3)
+        {
             byte = (_edi >> (8*i)) & 0xff;
             dec_file << byte;
             continue;
         }
+
         byte = (_ebx >> (8*i)) & 0xff;
         dec_file << byte;
     }
+
     dec_file.close();
 }
